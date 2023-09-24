@@ -1,2 +1,0 @@
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ar qc libParser.a "CMakeFiles/Parser.dir/Users/tansonlee/coding/redis-clone/shared/parser.cpp.o"
-/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ranlib libParser.a
