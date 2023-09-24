@@ -1,0 +1,5 @@
+/Users/tansonlee/coding/redis-clone/worker/build/CMakeFiles/Parser.dir
+/Users/tansonlee/coding/redis-clone/worker/build/CMakeFiles/Cache.dir
+/Users/tansonlee/coding/redis-clone/worker/build/CMakeFiles/worker.dir
+/Users/tansonlee/coding/redis-clone/worker/build/CMakeFiles/edit_cache.dir
+/Users/tansonlee/coding/redis-clone/worker/build/CMakeFiles/rebuild_cache.dir

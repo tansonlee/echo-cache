@@ -1,0 +1,19 @@
+{
+	"files.associations": {
+		"map": "cpp",
+		"string": "cpp",
+		"iosfwd": "cpp",
+		"tuple": "cpp",
+		"type_traits": "cpp",
+		"utility": "cpp",
+		"__config": "cpp",
+		"__hash_table": "cpp",
+		"__tree": "cpp",
+		"algorithm": "cpp",
+		"bitset": "cpp",
+		"locale": "cpp",
+		"sstream": "cpp",
+		"version": "cpp",
+		"complex": "cpp"
+	}
+}

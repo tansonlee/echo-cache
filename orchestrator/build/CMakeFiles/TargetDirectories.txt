@@ -1,0 +1,4 @@
+/Users/tansonlee/coding/redis-clone/orchestrator/build/CMakeFiles/Parser.dir
+/Users/tansonlee/coding/redis-clone/orchestrator/build/CMakeFiles/orchestrator.dir
+/Users/tansonlee/coding/redis-clone/orchestrator/build/CMakeFiles/edit_cache.dir
+/Users/tansonlee/coding/redis-clone/orchestrator/build/CMakeFiles/rebuild_cache.dir
