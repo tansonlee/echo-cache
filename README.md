@@ -1,4 +1,4 @@
-# Tedis
+# Remote Cache
 
 ## Ideas
 
@@ -8,11 +8,13 @@
 
 ## Goals
 
--   Massively available system
--   Partition tolerant
+-   In relation to the CAP theorem, prioritize availability and partition tolerance
 -   Simple
+-   Easy client interface
 
 ## Architecture
+
+![Architecture](architecture.png)
 
 -   orchestrator-worker architecture
 -   Orchestrator: every request and response goes through the orchestrator. The orchestrator directs responses to workers. Basically a load balancer/proxy
