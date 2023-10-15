@@ -22,21 +22,21 @@ int build_server_fd(sockaddr_in server_addr) {
     int server_sockfd;      // server socket fd 
     /* create socket fd with IPv4 and TCP protocal*/
     if((server_sockfd=socket(PF_INET,SOCK_STREAM,0))<0) {  
-                    perror("socket error");
-                    return 1;
+        perror("socket error");
+        return 1;
     }
 
     /* bind socket with server addr */
     if(bind(server_sockfd,(struct sockaddr *)&server_addr,sizeof(struct sockaddr))<0) {
-                    perror("bind error");
-                    return 1;
+        perror("bind error");
+        return 1;
     }
 
 
     /* listen connection request with a queue length of 20 */
     if(listen(server_sockfd,20)<0) {
-                    perror("listen error");
-                    return 1;
+        perror("listen error");
+        return 1;
     }
 
     return server_sockfd;
@@ -148,8 +148,11 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    std::cerr << 1 << std::endl;
     sockaddr_in server_addr = build_server_info(commandLineArguments.port);
+    std::cerr << 2 << std::endl;
     int server_sockfd = build_server_fd(server_addr);
+    std::cerr << 3 << std::endl;
     printf("listen success.\n");
 
     char recv_buf[65536];
@@ -159,6 +162,7 @@ int main(int argc, char *argv[]) {
         sockaddr_in client_addr;
         socklen_t length = sizeof(client_addr);
         // block on accept until positive fd or error
+        std::cerr << 4 << std::endl;
         int conn = accept(server_sockfd, (struct sockaddr*)&client_addr,&length);
         if(conn<0) {
             perror("connect");

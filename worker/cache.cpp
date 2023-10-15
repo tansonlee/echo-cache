@@ -27,5 +27,5 @@ HandlerResponse Cache::get(std::string key) {
 
 HandlerResponse Cache::set(std::string key, std::string val) {
     this->map[key] = val;
-    return {StatusCode::success, ""};
+    return {StatusCode::success, "Got it!"};
 }
