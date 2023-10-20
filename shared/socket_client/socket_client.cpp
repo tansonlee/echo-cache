@@ -54,7 +54,6 @@ std::string SocketClient::sendMessage(const std::string& message) {
     } else {
         // Null-terminate the received data to treat it as a string
         recv_buf[bytes_received] = '\0';
-        std::cout << "Received from server: " << recv_buf << std::endl;
     } 
     return recv_buf;
 }

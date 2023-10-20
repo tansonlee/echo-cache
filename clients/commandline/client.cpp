@@ -3,13 +3,14 @@
 #include <string>
 
 #include <cpp_client.h>
+#include <parser.h>
 
 void printCommandList() {
+    std::cout << std::endl;
     std::cout << "Type a command:" << std::endl;
     std::cout << " 1. set <key> <value>" << std::endl;
     std::cout << " 2. get <key>" << std::endl;
     std::cout << " 3. quit" << std::endl;
-    std::cout << ">>>";
 }
 
 int main(int argc, char **argv) {
@@ -23,8 +24,9 @@ int main(int argc, char **argv) {
 
     RemoteCache remoteCache{ip, port};
 
+    printCommandList();
     while (true) {
-        printCommandList();
+        std::cout << std::endl << ">>> ";
 
         std::string command;
         std::cin >> command;
@@ -42,8 +44,8 @@ int main(int argc, char **argv) {
         } else if (command == "get") {
             std::string key;
             std::cin >> key;
-            std::string response = remoteCache.get(key);
-            std::cout << "Response: '" << response << "'" << std::endl;
+            HandlerResponse response = remoteCache.get(key);
+            std::cout << "Response (" << response.statusCode << "): '" << response.result << "'" << std::endl;
         } else if (command == "quit") {
             break;
         } else {

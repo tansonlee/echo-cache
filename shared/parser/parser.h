@@ -49,10 +49,22 @@ struct HandlerResponse {
 
 const char COMMAND_SEPARATOR = '|';
 
+// set||name||tanson -> set
+// get||name -> get
 CommandType getCommandType(std::string command);
+
+// set||name||tanson -> { true, name, tanson}
 ParsedSetRequest parseSet(std::string command);
+
+// get||name -> { true, name }
 ParsedGetRequest parseGet(std::string command);
+
+// set||name||tanson -> name
+// get||name -> name
 ParsedKey parseKey(std::string command);
 
+// { 0, "tanson" } -> 0||tanson
+std::string formatResponseString(HandlerResponse response);
+HandlerResponse parseResponseString(std::string response);
 
 #endif

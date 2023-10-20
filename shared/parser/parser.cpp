@@ -1,4 +1,20 @@
 #include "parser.h"
+#include <stdexcept>
+
+StatusCode intToStatusCode(int code) {
+    switch (code) {
+        case 0:
+            return StatusCode::success;
+        case 1:
+            return StatusCode::parsingFailure;
+        case 2:
+            return StatusCode::keyNotFound;
+        case 3:
+            return StatusCode::invalidCommand;
+        default:
+            throw std::invalid_argument("No such status code: " + std::to_string(code));
+    }
+}
 
 int find_separator(std::string str, int start) {
     // Find the separator repeated twice.
@@ -83,4 +99,21 @@ ParsedKey parseKey(std::string command) {
     }
 
     return {false, ""};
+}
+
+std::string formatResponseString(HandlerResponse response) {
+    return std::to_string(response.statusCode) + "||" + response.result;
+}
+
+HandlerResponse parseResponseString(std::string response) {
+    int separator_index = find_separator(response, 0);
+
+    StatusCode statusCode = intToStatusCode(stoi(response.substr(0, separator_index)));
+
+    int response_start = separator_index + 2;
+    int response_end = response.length() - 1;
+    int response_length = response_end - response_start + 1;
+    std::string result = response.substr(separator_index + 2, response_length);
+
+    return { statusCode, result };
 }

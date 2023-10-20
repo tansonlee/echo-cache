@@ -44,9 +44,6 @@ int build_server_fd(sockaddr_in server_addr) {
     return server_sockfd;
 }
 
-std::string formatResponseString(HandlerResponse response) {
-    return std::to_string(response.statusCode) + "||" + response.result;
-}
 
 HandlerResponse handleRequest(char* buff, Cache& cache) {
     std::string command(buff);

@@ -10,5 +10,5 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(main client.cpp)
 
-find_library(libs NAMES CppClient)
-target_link_libraries(main PRIVATE CppClient)
+find_library(libs NAMES CppClient Parser)
+target_link_libraries(main PRIVATE CppClient Parser)
