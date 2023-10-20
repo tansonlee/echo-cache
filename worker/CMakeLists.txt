@@ -7,9 +7,8 @@ project(
 
 set (CMAKE_CXX_STANDARD 20)
 
-add_library(Parser ../shared/parser.cpp ../shared/parser.h)
-add_library(Cache cache.cpp cache.h)
-
 add_executable(worker worker.cpp)
 
-target_link_libraries(worker PRIVATE Parser Cache)
+add_library(CacheWorker cache.cpp cache.h)
+
+target_link_libraries(worker PRIVATE Parser CacheWorker)

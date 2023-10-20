@@ -7,8 +7,6 @@ project(
 
 set (CMAKE_CXX_STANDARD 20)
 
-add_library(Parser ../shared/parser.cpp ../shared/parser.h)
-
 add_executable(orchestrator orchestrator.cpp)
 
-target_link_libraries(orchestrator PRIVATE Parser)
+target_link_libraries(orchestrator PRIVATE Parser SocketClient)

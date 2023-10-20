@@ -6,7 +6,7 @@
 #include <unistd.h> // for close
 #include <string.h>
 #include <string>
-#include "../shared/parser.h"
+#include "../shared/parser/parser.h"
 #include <iostream>
 #include <sstream> 
 #include "cache.h"
@@ -24,21 +24,21 @@ int build_server_fd(sockaddr_in server_addr) {
     int server_sockfd;      // server socket fd 
     /* create socket fd with IPv4 and TCP protocal*/
     if((server_sockfd=socket(PF_INET,SOCK_STREAM,0))<0) {  
-                    perror("socket error");
-                    return 1;
+        perror("socket error");
+        return 1;
     }
 
     /* bind socket with server addr */
     if(bind(server_sockfd,(struct sockaddr *)&server_addr,sizeof(struct sockaddr))<0) {
-                    perror("bind error");
-                    return 1;
+        perror("bind error");
+        return 1;
     }
 
 
     /* listen connection request with a queue length of 20 */
     if(listen(server_sockfd,20)<0) {
-                    perror("listen error");
-                    return 1;
+        perror("listen error");
+        return 1;
     }
 
     return server_sockfd;

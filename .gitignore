@@ -2,6 +2,5 @@
 .DS_Store
 
 # Build files
-*/build/*
-*/CMakeFiles/*
-CMakeCache.txt
+build/
+CMakeFiles/

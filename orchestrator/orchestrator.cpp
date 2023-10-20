@@ -7,7 +7,8 @@
 #include <string.h>
 #include <string>
 #include <iostream>
-#include "../shared/parser.h"
+#include "../shared/parser/parser.h"
+#include "../shared/socket_client/socket_client.h"
 
 sockaddr_in build_server_info(int port) {
     sockaddr_in server_addr;     // server info struct
@@ -20,7 +21,7 @@ sockaddr_in build_server_info(int port) {
 
 int build_server_fd(sockaddr_in server_addr) {
     int server_sockfd;      // server socket fd 
-    /* create socket fd with IPv4 and TCP protocal*/
+    /* create socket fd with IPv4 and TCP protocol*/
     if((server_sockfd=socket(PF_INET,SOCK_STREAM,0))<0) {  
         perror("socket error");
         return 1;
@@ -42,52 +43,13 @@ int build_server_fd(sockaddr_in server_addr) {
     return server_sockfd;
 }
 
-std::string handleRequest(char* buff, const char* worker_ip, int worker_port) {
+std::string handleRequest(char* buff, const std::string& worker_ip, int worker_port) {
     std::string command(buff);
 
-    struct sockaddr_in server_addr;     // set server addr and port
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr(worker_ip);
-    server_addr.sin_port = htons(worker_port);  // server default port
+    SocketClient client{worker_ip, worker_port};
+    std::string response = client.sendMessage(command);
 
-    int sock_client;
-    char send_buf[65536];
-    memset(send_buf, '\0', sizeof(send_buf));
-    strcpy(send_buf, command.c_str());
-
-    if ((sock_client = socket(AF_INET,SOCK_STREAM, 0)) < 0) {
-        return 0;
-    }
-
-    //connect server, return 0 with success, return -1 with error
-    if (connect(sock_client, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
-    {
-        perror("connect");
-        return 0;
-    }
-
-    char server_ip[INET_ADDRSTRLEN]="";
-    inet_ntop(AF_INET, &server_addr.sin_addr, server_ip, INET_ADDRSTRLEN);
-    printf("connected server(%s:%d). \n", server_ip, ntohs(server_addr.sin_port));
-
-    //send a message to server
-    send(sock_client, send_buf, strlen(send_buf), 0);
-
-    char recv_buf[65536]; 
-    ssize_t bytes_received = recv(sock_client, recv_buf, sizeof(recv_buf), 0);
-    if (bytes_received < 0) {
-        perror("recv");
-    } else if (bytes_received == 0) {
-        std::cout << "Server closed the connection." << std::endl;
-    } else {
-        // Null-terminate the received data to treat it as a string
-        recv_buf[bytes_received] = '\0';
-        std::cout << "Received from server: " << recv_buf << std::endl;
-    } 
-
-    close(sock_client);
-    return recv_buf;
+    return response;
 }
 
 struct IpAndPort {
@@ -161,9 +123,9 @@ int main(int argc, char *argv[]) {
     while (true) {
         sockaddr_in client_addr;
         socklen_t length = sizeof(client_addr);
-        // block on accept until positive fd or error
-        std::cerr << 4 << std::endl;
         int conn = accept(server_sockfd, (struct sockaddr*)&client_addr,&length);
+
+        // block on accept until positive fd or error
         if(conn<0) {
             perror("connect");
             continue;
@@ -192,7 +154,7 @@ int main(int argc, char *argv[]) {
 
                 IpAndPort workerIpAndPort = commandLineArguments.workers[hash];
                 
-                std::string response = handleRequest(recv_buf, workerIpAndPort.ip.c_str(), workerIpAndPort.port);
+                std::string response = handleRequest(recv_buf, workerIpAndPort.ip, workerIpAndPort.port);
 
                 int responseCode = send(conn, response.c_str(), response.size(), 0);
                 if (responseCode == -1) {
