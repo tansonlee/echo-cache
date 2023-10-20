@@ -1,7 +1,7 @@
 #ifndef CACHE_H
 #define CACHE_H
 
-#include "../shared/parser/parser.h"
+#include <parser.h>
 #include <string>
 #include <map>
 

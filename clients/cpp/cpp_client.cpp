@@ -1,8 +1,8 @@
-#include "client.h"
+#include "cpp_client.h"
 
 #include <string>
 
-#include "../../shared/socket_client/socket_client.h"
+#include <socket_client.h>
 
 RemoteCache::RemoteCache(const std::string& ip, int port) {
     this->ip = ip;

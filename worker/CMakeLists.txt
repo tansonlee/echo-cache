@@ -6,9 +6,10 @@ project(
   LANGUAGES CXX)
 
 set (CMAKE_CXX_STANDARD 20)
+add_subdirectory(cache)
 
 add_executable(worker worker.cpp)
 
-add_library(CacheWorker cache.cpp cache.h)
+find_library(libs NAMES Parser LocalCache)
 
-target_link_libraries(worker PRIVATE Parser CacheWorker)
+target_link_libraries(worker PRIVATE Parser LocalCache)

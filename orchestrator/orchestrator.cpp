@@ -7,8 +7,8 @@
 #include <string.h>
 #include <string>
 #include <iostream>
-#include "../shared/parser/parser.h"
-#include "../shared/socket_client/socket_client.h"
+#include <parser.h>
+#include <socket_client.h>
 
 sockaddr_in build_server_info(int port) {
     sockaddr_in server_addr;     // server info struct

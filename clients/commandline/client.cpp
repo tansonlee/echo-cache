@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 
-#include "../cpp/client.h"
+#include <cpp_client.h>
 
 void printCommandList() {
     std::cout << "Type a command:" << std::endl;

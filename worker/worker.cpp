@@ -6,10 +6,10 @@
 #include <unistd.h> // for close
 #include <string.h>
 #include <string>
-#include "../shared/parser/parser.h"
+#include <parser.h>
 #include <iostream>
 #include <sstream> 
-#include "cache.h"
+#include <cache.h>
 
 sockaddr_in build_server_info(int port) {
     sockaddr_in server_addr;     // server info struct
