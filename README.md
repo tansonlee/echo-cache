@@ -32,6 +32,13 @@
 
 -   None for now
 
+## Orchestrator Architecture
+
+-   When receives a connection request, spin up a thread to handle that connection
+    -   Keep the connection open until the client closes it through closing it on their end or sending "exit"
+    -   When it receives a request, process it and return a response. Also update the "last request at"
+-   Have a care-taker thread that just goes through all of the threads "last request at" times and kills those that have not had activity in a certain period of time.
+
 ## Orchestrator and Worker API
 
 ```

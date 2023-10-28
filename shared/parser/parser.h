@@ -40,6 +40,7 @@ enum StatusCode {
     parsingFailure = 1,
     keyNotFound = 2,
     invalidCommand = 3,
+    unexpectedError = 4
 };
 
 struct HandlerResponse {

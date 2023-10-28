@@ -11,6 +11,8 @@ StatusCode intToStatusCode(int code) {
             return StatusCode::keyNotFound;
         case 3:
             return StatusCode::invalidCommand;
+        case 4:
+            return StatusCode::unexpectedError;
         default:
             throw std::invalid_argument("No such status code: " + std::to_string(code));
     }

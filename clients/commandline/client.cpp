@@ -47,6 +47,7 @@ int main(int argc, char **argv) {
             HandlerResponse response = remoteCache.get(key);
             std::cout << "Response (" << response.statusCode << "): '" << response.result << "'" << std::endl;
         } else if (command == "quit") {
+            remoteCache.closeConnection();
             break;
         } else {
             std::cerr << "Invalid command" << std::endl;

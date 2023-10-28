@@ -20,6 +20,11 @@ SocketClient::SocketClient(const std::string& ip, int port) {
     if (this->sock_client < 0) {
         std::cerr << "Something went wrong" << std::endl;
     }
+
+    int connection = connect(this->sock_client, (struct sockaddr *)&this->server_addr, sizeof(this->server_addr));
+    if (connection < 0) {
+        perror("connect");
+    }
 }
 
 SocketClient::~SocketClient() {
@@ -27,23 +32,8 @@ SocketClient::~SocketClient() {
 }
 
 std::string SocketClient::sendMessage(const std::string& message) {
-    char send_buf[65536];
-    memset(send_buf, '\0', sizeof(send_buf));
-    strcpy(send_buf, message.c_str());
-
-    //connect server, return 0 with success, return -1 with error
-    int connection = connect(this->sock_client, (struct sockaddr *)&this->server_addr, sizeof(this->server_addr));
-    if (connection < 0) {
-        perror("connect");
-        return "";
-    }
-
-    // char server_ip[INET_ADDRSTRLEN]="";
-    // inet_ntop(AF_INET, &this->server_addr.sin_addr, server_ip, INET_ADDRSTRLEN);
-    // printf("connected server(%s:%d). \n", server_ip, ntohs(this->server_addr.sin_port));
-
     //send a message to server
-    send(this->sock_client, send_buf, strlen(send_buf), 0);
+    send(this->sock_client, message.c_str(), strlen(message.c_str()), 0);
 
     char recv_buf[65536]; 
     ssize_t bytes_received = recv(this->sock_client, recv_buf, sizeof(recv_buf), 0);

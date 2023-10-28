@@ -10,6 +10,9 @@
 #include <parser.h>
 #include <socket_client.h>
 
+#include <thread>
+#include <vector>
+
 sockaddr_in build_server_info(int port) {
     sockaddr_in server_addr;     // server info struct
     server_addr.sin_family=AF_INET;     // TCP/IP
@@ -103,6 +106,53 @@ int hashKey(std::string key, int numWorkers) {
     return result;
 }
 
+void handleClient(CommandLineArguments commandLineArguments, int connection, const std::string& printPrefix) {
+    std::cout << printPrefix << "new client" << std::endl;
+    char recv_buf[65536];
+    
+    while (true) {
+        memset(recv_buf, '\0', sizeof(recv_buf));
+        ssize_t bytes_received = recv(connection, recv_buf, sizeof(recv_buf), 0);
+
+        std::cout << printPrefix << "got " << recv_buf << std::endl;
+
+        if (bytes_received == -1) {
+            perror("recv");
+            break;
+        }
+        if (bytes_received == 0) {
+            std::cout << printPrefix << "connection closed by client" << std::endl;
+            break;
+        } 
+
+        std::string command = recv_buf;
+        if (command == "end") {
+            std::cout << printPrefix << "client requests connection close" << std::endl;
+            std::string response = "closing";
+            int responseCode = send(connection, response.c_str(), response.size(), 0);
+            break;
+        }
+
+        ParsedKey parsedKey = parseKey(command);
+        if (parsedKey.success) {
+            int hash = hashKey(parsedKey.key, commandLineArguments.numWorkers);
+            std::cout << printPrefix << "routing " << hash << std::endl;
+
+            IpAndPort workerIpAndPort = commandLineArguments.workers[hash];
+            
+            std::string response = handleRequest(recv_buf, workerIpAndPort.ip, workerIpAndPort.port);
+
+            std::cout << printPrefix << "respond " << response << std::endl;
+            int responseCode = send(connection, response.c_str(), response.size(), 0);
+            if (responseCode == -1) {
+                perror("send");
+            }
+        }
+    }
+    std::cout << printPrefix << "end connection" << std::endl;
+    close(connection);
+}
+
 int main(int argc, char *argv[]) {
     CommandLineArguments commandLineArguments = parseCommandLineArguments(argc, argv);
     if (!commandLineArguments.success) {
@@ -110,63 +160,31 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    std::cerr << 1 << std::endl;
     sockaddr_in server_addr = build_server_info(commandLineArguments.port);
-    std::cerr << 2 << std::endl;
     int server_sockfd = build_server_fd(server_addr);
-    std::cerr << 3 << std::endl;
-    printf("listen success.\n");
+    std::cout << "Listening on port: " << commandLineArguments.port << std::endl;
 
-    char recv_buf[65536];
-    memset(recv_buf, '\0', sizeof(recv_buf));
+    std::vector<std::thread> clientHandlerThreads;
 
     while (true) {
         sockaddr_in client_addr;
         socklen_t length = sizeof(client_addr);
         int conn = accept(server_sockfd, (struct sockaddr*)&client_addr,&length);
-
         // block on accept until positive fd or error
         if(conn<0) {
-            perror("connect");
+            perror("Orchestrator error connect");
             continue;
         }
 
-        printf("new client accepted.\n");
+        std::string client_ip = inet_ntoa(client_addr.sin_addr);
+        int client_port = (int) ntohs(client_addr.sin_port);
+        std::string printPrefix = client_ip + ":" + std::to_string(client_port) + " - ";
 
-        char client_ip[INET_ADDRSTRLEN] = "";
-        inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
-
-        
-        ssize_t bytes_received = recv(conn, recv_buf, sizeof(recv_buf), 0);
-        if (bytes_received == -1) {
-            perror("recv");
-        } else if (bytes_received == 0) {
-            // Connection closed by the client
-        } else {
-            printf("recv %s from client(%s:%d).\n", recv_buf, client_ip, ntohs(client_addr.sin_port));
-
-            std::string command = recv_buf;
-
-            ParsedKey parsedKey = parseKey(command);
-            if (parsedKey.success) {
-                int hash = hashKey(parsedKey.key, commandLineArguments.numWorkers);
-                std::cout << "SENDING TO WORKER " << hash << std::endl;
-
-                IpAndPort workerIpAndPort = commandLineArguments.workers[hash];
-                
-                std::string response = handleRequest(recv_buf, workerIpAndPort.ip, workerIpAndPort.port);
-
-                int responseCode = send(conn, response.c_str(), response.size(), 0);
-                if (responseCode == -1) {
-                    perror("send");
-                }
-            }
-            memset(recv_buf, '\0', sizeof(recv_buf));
-        }
-        close(conn);
+        clientHandlerThreads.push_back(std::thread(handleClient, commandLineArguments, conn, printPrefix));
+        // handleClient(commandLineArguments, conn, printPrefix);
     }
 
-    printf("closed. \n");
+    std::cout << "Closing server" << std::endl;
     close(server_sockfd);
     return 0;
 }
