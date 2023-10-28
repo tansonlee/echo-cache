@@ -5,6 +5,7 @@
 
 #include <parser.h>
 #include <socket_client.h>
+#include <exception>
 
 RemoteCache::RemoteCache(const std::string& ip, int port) {
     this->ip = ip;
@@ -29,10 +30,15 @@ HandlerResponse RemoteCache::get(const std::string& key) {
     int retriesLeft = this->maxRetries;
     while (retriesLeft >= 1) {
         try {
+            std::cerr << "trying to get" << std::endl;
             std::string response = giveType(this->client)->sendMessage("get||" + key);
+            if (response.empty()) {
+                throw std::runtime_error("bad connection");
+            }
             HandlerResponse parsed = parseResponseString(response);
             return parsed;
         } catch (...) {
+            std::cerr << "reestablishing connection" << std::endl;
             this->reestablishConnection();
         }
         --retriesLeft;
@@ -65,12 +71,15 @@ void RemoteCache::establishConnection() {
     this->client = client;
 }
 
-
 void RemoteCache::closeConnection() {
+    delete giveType(this->client);
+    this->client = nullptr;
+}
+
+void RemoteCache::initiateAndCloseConnection() {
     try {
         giveType(this->client)->sendMessage("end");
     } catch (...) {}
 
-    delete giveType(this->client);
-    this->client = nullptr;
+    this->closeConnection();
 }

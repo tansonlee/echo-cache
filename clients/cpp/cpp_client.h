@@ -13,6 +13,7 @@ class RemoteCache {
     HandlerResponse get(const std::string& key);
     bool set(const std::string& key, const std::string& value);
     void reestablishConnection();
+    void initiateAndCloseConnection();
     void closeConnection();
 
   private:

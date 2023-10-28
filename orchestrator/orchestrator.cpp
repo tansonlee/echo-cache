@@ -12,6 +12,42 @@
 
 #include <thread>
 #include <vector>
+#include <chrono>
+#include <map>
+#include <mutex>
+#include <limits.h>
+
+const int CLEAN_UP_THREAD_PERIOD_SEC = 60;
+
+struct ThreadAndLastUsed {
+    std::thread thread;
+    int connection;
+    int lastUsed;
+    bool deleted;
+};
+
+std::mutex clientHandlerMutex;
+std::map<int, ThreadAndLastUsed*> clientHandlerThreads;
+
+std::mutex nextIdMutex;
+int nextId = 0;
+
+int getNextId() {
+    std::lock_guard<std::mutex> lock(nextIdMutex);
+
+    int result = nextId;
+    nextId += 1;
+    nextId = nextId % INT_MAX;
+    return result;
+}
+
+int getCurrentTime() {
+    int ms = std::chrono::duration_cast< std::chrono::milliseconds >(
+        std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+
+    return ms / 1000;
+}
 
 sockaddr_in build_server_info(int port) {
     sockaddr_in server_addr;     // server info struct
@@ -106,7 +142,7 @@ int hashKey(std::string key, int numWorkers) {
     return result;
 }
 
-void handleClient(CommandLineArguments commandLineArguments, int connection, const std::string& printPrefix) {
+void handleClient(CommandLineArguments commandLineArguments, int connection, const std::string& printPrefix, int id) {
     std::cout << printPrefix << "new client" << std::endl;
     char recv_buf[65536];
     
@@ -118,10 +154,13 @@ void handleClient(CommandLineArguments commandLineArguments, int connection, con
 
         if (bytes_received == -1) {
             perror("recv");
+            std::cerr << "Exiting this listening thread" << std::endl;
             break;
         }
         if (bytes_received == 0) {
             std::cout << printPrefix << "connection closed by client" << std::endl;
+            close(connection);
+            clientHandlerThreads.erase(id);
             break;
         } 
 
@@ -130,6 +169,8 @@ void handleClient(CommandLineArguments commandLineArguments, int connection, con
             std::cout << printPrefix << "client requests connection close" << std::endl;
             std::string response = "closing";
             int responseCode = send(connection, response.c_str(), response.size(), 0);
+            close(connection);
+            clientHandlerThreads.erase(id);
             break;
         }
 
@@ -150,7 +191,29 @@ void handleClient(CommandLineArguments commandLineArguments, int connection, con
         }
     }
     std::cout << printPrefix << "end connection" << std::endl;
-    close(connection);
+    // close(connection);
+}
+
+void cleanUpThreads() {
+    while (true) {
+        // Perform cleanup
+        for (auto it = clientHandlerThreads.cbegin(); it != clientHandlerThreads.cend();) {
+            std::cerr << "Looking at thread" << std::endl;
+            int lastUsed = it->second->lastUsed;
+            int currentTime = getCurrentTime();
+            std::cout << "time diff " << currentTime - lastUsed << std::endl;
+            if (currentTime - lastUsed > 5) {
+                std::cerr << "killing this thread" << std::endl;
+                int connection = it->second->connection;
+                close(connection);
+                it = clientHandlerThreads.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -164,7 +227,7 @@ int main(int argc, char *argv[]) {
     int server_sockfd = build_server_fd(server_addr);
     std::cout << "Listening on port: " << commandLineArguments.port << std::endl;
 
-    std::vector<std::thread> clientHandlerThreads;
+    std::thread custodianThread = std::thread(cleanUpThreads);
 
     while (true) {
         sockaddr_in client_addr;
@@ -180,8 +243,13 @@ int main(int argc, char *argv[]) {
         int client_port = (int) ntohs(client_addr.sin_port);
         std::string printPrefix = client_ip + ":" + std::to_string(client_port) + " - ";
 
-        clientHandlerThreads.push_back(std::thread(handleClient, commandLineArguments, conn, printPrefix));
-        // handleClient(commandLineArguments, conn, printPrefix);
+        int threadId = getNextId();
+        ThreadAndLastUsed* td = new ThreadAndLastUsed{
+            std::thread(handleClient, commandLineArguments, conn, printPrefix, threadId),
+            conn,
+            getCurrentTime()
+        };
+        clientHandlerThreads[threadId] = td;
     }
 
     std::cout << "Closing server" << std::endl;

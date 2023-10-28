@@ -39,13 +39,13 @@ std::string SocketClient::sendMessage(const std::string& message) {
     ssize_t bytes_received = recv(this->sock_client, recv_buf, sizeof(recv_buf), 0);
     if (bytes_received < 0) {
         perror("recv");
+        return "";
     } else if (bytes_received == 0) {
         std::cout << "Server closed the connection." << std::endl;
+        return "";
     } else {
         // Null-terminate the received data to treat it as a string
         recv_buf[bytes_received] = '\0';
     } 
     return recv_buf;
 }
-
-
