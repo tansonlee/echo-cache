@@ -14,7 +14,8 @@ class SocketClient {
     SocketClient(const std::string& ip, int port);
     ~SocketClient();
 
-    std::string sendMessage(const std::string& message);
+    void sendMessage(const std::string& message);
+    std::string receiveResponse();
   private:
     sockaddr_in server_addr;
     int sock_client;

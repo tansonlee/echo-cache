@@ -63,3 +63,12 @@ error = <string> // error message
 ```
 ./orchestrator <ip 1> <port 1> <ip 2> <port 2> ... <ip n> <port n>
 ```
+
+Talk about
+
+-   architecture
+-   the custom networking protocol
+-   the implementation of the in memory cache itself
+    -   compress the data first
+-   the fault tolerance (storing on multiple instances and fetching from multiple instances)
+-

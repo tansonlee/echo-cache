@@ -7,7 +7,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <unistd.h> // for close
+#include <unistd.h>
 
 SocketClient::SocketClient(const std::string& ip, int port) {
     memset(&this->server_addr, 0, sizeof(this->server_addr));
@@ -31,10 +31,11 @@ SocketClient::~SocketClient() {
     close(this->sock_client);
 }
 
-std::string SocketClient::sendMessage(const std::string& message) {
-    //send a message to server
+void SocketClient::sendMessage(const std::string& message) {
     send(this->sock_client, message.c_str(), strlen(message.c_str()), 0);
+}
 
+std::string SocketClient::receiveResponse() {
     char recv_buf[65536]; 
     ssize_t bytes_received = recv(this->sock_client, recv_buf, sizeof(recv_buf), 0);
     if (bytes_received < 0) {

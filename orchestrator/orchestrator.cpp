@@ -4,142 +4,40 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h> // for close
-#include <string.h>
+#include <limits.h>
+
 #include <string>
 #include <iostream>
-#include <parser.h>
-#include <socket_client.h>
-
 #include <thread>
 #include <vector>
 #include <chrono>
 #include <map>
 #include <mutex>
-#include <limits.h>
 
+#include <parser.h>
+#include <socket_client.h>
+#include <socket_server.h>
+#include "helpers.h"
+
+// How often to check for zombie threads.
 const int CLEAN_UP_THREAD_PERIOD_SEC = 60;
+// How long with no activity until a thread is a zombie.
+const int MAX_NO_ACTIVITY_LIFETIME_SEC = 60;
 
-struct ThreadAndLastUsed {
-    std::thread thread;
+struct ConnectionUsage {
     int connection;
     int lastUsed;
-    bool deleted;
 };
 
-std::mutex clientHandlerMutex;
-std::map<int, ThreadAndLastUsed*> clientHandlerThreads;
-
-std::mutex nextIdMutex;
-int nextId = 0;
-
-int getNextId() {
-    std::lock_guard<std::mutex> lock(nextIdMutex);
-
-    int result = nextId;
-    nextId += 1;
-    nextId = nextId % INT_MAX;
-    return result;
-}
-
-int getCurrentTime() {
-    int ms = std::chrono::duration_cast< std::chrono::milliseconds >(
-        std::chrono::system_clock::now().time_since_epoch()
-    ).count();
-
-    return ms / 1000;
-}
-
-sockaddr_in build_server_info(int port) {
-    sockaddr_in server_addr;     // server info struct
-    server_addr.sin_family=AF_INET;     // TCP/IP
-    server_addr.sin_addr.s_addr=INADDR_ANY;     // server addr--permit all connection
-    server_addr.sin_port=htons(port);       // server port
-
-    return server_addr;
-}
-
-int build_server_fd(sockaddr_in server_addr) {
-    int server_sockfd;      // server socket fd 
-    /* create socket fd with IPv4 and TCP protocol*/
-    if((server_sockfd=socket(PF_INET,SOCK_STREAM,0))<0) {  
-        perror("socket error");
-        return 1;
-    }
-
-    /* bind socket with server addr */
-    if(bind(server_sockfd,(struct sockaddr *)&server_addr,sizeof(struct sockaddr))<0) {
-        perror("bind error");
-        return 1;
-    }
-
-
-    /* listen connection request with a queue length of 20 */
-    if(listen(server_sockfd,20)<0) {
-        perror("listen error");
-        return 1;
-    }
-
-    return server_sockfd;
-}
+std::map<int, ConnectionUsage> clientConnections;
 
 std::string handleRequest(char* buff, const std::string& worker_ip, int worker_port) {
     std::string command(buff);
 
     SocketClient client{worker_ip, worker_port};
-    std::string response = client.sendMessage(command);
-
+    client.sendMessage(command);
+    std::string response = client.receiveResponse();
     return response;
-}
-
-struct IpAndPort {
-    std::string ip;
-    int port;
-};
-
-struct CommandLineArguments {
-    bool success;
-    int port;
-    int numWorkers;
-    IpAndPort* workers;
-};
-
-CommandLineArguments parseCommandLineArguments(int argc, char *argv[]) {
-    // Ensure there are an even number of args.
-    if (argc % 2 != 0) {
-        return {false, 0, 0, {}};
-    }
-
-    int port = atoi(argv[1]);
-    if (port == 0) {
-        return {false, 0, 0, {}};
-    }
-
-    int numWorkers = (argc - 2) / 2;
-    IpAndPort* workers = new IpAndPort[numWorkers];
-
-    for (int i = 2; i < argc; i += 2) {
-        std::string ip = argv[i];
-        int port = atoi(argv[i + 1]);
-        if (port == 0) {
-            return {false, 0, 0, {}};
-        }
-
-        workers[(i - 2) / 2] = {ip, port};
-    }
-
-    return {true, port, numWorkers, workers};
-}
-
-// Gives an int from 0 to (numWorkers - 1)
-int hashKey(std::string key, int numWorkers) {
-    int result = 0;
-    int len = key.length();
-    for (int i = 0; i < len; ++i) {
-        result += (int)key.at(i);
-        result = result % numWorkers;
-    }
-
-    return result;
 }
 
 void handleClient(CommandLineArguments commandLineArguments, int connection, const std::string& printPrefix, int id) {
@@ -160,7 +58,7 @@ void handleClient(CommandLineArguments commandLineArguments, int connection, con
         if (bytes_received == 0) {
             std::cout << printPrefix << "connection closed by client" << std::endl;
             close(connection);
-            clientHandlerThreads.erase(id);
+            clientConnections.erase(id);
             break;
         } 
 
@@ -170,7 +68,7 @@ void handleClient(CommandLineArguments commandLineArguments, int connection, con
             std::string response = "closing";
             int responseCode = send(connection, response.c_str(), response.size(), 0);
             close(connection);
-            clientHandlerThreads.erase(id);
+            clientConnections.erase(id);
             break;
         }
 
@@ -197,16 +95,16 @@ void handleClient(CommandLineArguments commandLineArguments, int connection, con
 void cleanUpThreads() {
     while (true) {
         // Perform cleanup
-        for (auto it = clientHandlerThreads.cbegin(); it != clientHandlerThreads.cend();) {
+        for (auto it = clientConnections.cbegin(); it != clientConnections.cend();) {
             std::cerr << "Looking at thread" << std::endl;
-            int lastUsed = it->second->lastUsed;
+            int lastUsed = it->second.lastUsed;
             int currentTime = getCurrentTime();
             std::cout << "time diff " << currentTime - lastUsed << std::endl;
             if (currentTime - lastUsed > 5) {
                 std::cerr << "killing this thread" << std::endl;
-                int connection = it->second->connection;
+                int connection = it->second.connection;
                 close(connection);
-                it = clientHandlerThreads.erase(it);
+                it = clientConnections.erase(it);
             } else {
                 ++it;
             }
@@ -223,10 +121,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    sockaddr_in server_addr = build_server_info(commandLineArguments.port);
-    int server_sockfd = build_server_fd(server_addr);
+    int server_sockfd = buildSocketServer(commandLineArguments.port);
     std::cout << "Listening on port: " << commandLineArguments.port << std::endl;
 
+    std::vector<std::thread> clientHandlerThreads;
     std::thread custodianThread = std::thread(cleanUpThreads);
 
     while (true) {
@@ -239,17 +137,13 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        std::string client_ip = inet_ntoa(client_addr.sin_addr);
-        int client_port = (int) ntohs(client_addr.sin_port);
+        std::string client_ip = inet_ntoa(client_addr.sin_addr); int client_port = (int) ntohs(client_addr.sin_port);
         std::string printPrefix = client_ip + ":" + std::to_string(client_port) + " - ";
 
         int threadId = getNextId();
-        ThreadAndLastUsed* td = new ThreadAndLastUsed{
-            std::thread(handleClient, commandLineArguments, conn, printPrefix, threadId),
-            conn,
-            getCurrentTime()
-        };
-        clientHandlerThreads[threadId] = td;
+        clientHandlerThreads.push_back(std::thread(handleClient, commandLineArguments, conn, printPrefix, threadId));
+
+        clientConnections[threadId] = { conn, getCurrentTime() };
     }
 
     std::cout << "Closing server" << std::endl;

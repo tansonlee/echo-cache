@@ -1,2 +1,3 @@
 add_subdirectory(parser)
 add_subdirectory(socket_client)
+add_subdirectory(socket_server)

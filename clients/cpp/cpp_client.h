@@ -5,6 +5,8 @@
 // #include <socket_client.h>
 #include <parser.h>
 
+class SocketClient;
+
 class RemoteCache {
   public:
     RemoteCache(const std::string& ip, int port);
@@ -19,7 +21,7 @@ class RemoteCache {
   private:
     void establishConnection();
 
-    void* client;
+    SocketClient* client;
     std::string ip;
     int port;
     int maxRetries;

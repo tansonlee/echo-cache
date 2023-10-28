@@ -8,7 +8,7 @@
 class Cache {
 public:
     Cache();
-    ~Cache();
+    ~Cache() = default;
 
     HandlerResponse get(std::string key);
     HandlerResponse set(std::string key, std::string val);

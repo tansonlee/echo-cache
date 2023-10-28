@@ -20,18 +20,13 @@ RemoteCache::~RemoteCache() {
     }
 }
 
-// HACK: including <socket_client.h> in the header file does not work
-// so set client to a void* then cast when using it.
-SocketClient* giveType(void* client) {
-    return (SocketClient*)client;
-}
-
 HandlerResponse RemoteCache::get(const std::string& key) {
     int retriesLeft = this->maxRetries;
     while (retriesLeft >= 1) {
         try {
             std::cerr << "trying to get" << std::endl;
-            std::string response = giveType(this->client)->sendMessage("get||" + key);
+            this->client->sendMessage("get||" + key);
+            std::string response = this->client->receiveResponse();
             if (response.empty()) {
                 throw std::runtime_error("bad connection");
             }
@@ -51,7 +46,11 @@ bool RemoteCache::set(const std::string& key, const std::string& value) {
     int retriesLeft = this->maxRetries;
     while (retriesLeft >= 1) {
         try {
-            std::string response = giveType(this->client)->sendMessage("set||" + key + "||" + value);
+            this->client->sendMessage("set||" + key + "||" + value);
+            std::string response = this->client->receiveResponse();
+            if (response.empty()) {
+                throw std::runtime_error("bad connection");
+            }
             return true;
         } catch (...) {
             this->reestablishConnection();
@@ -72,13 +71,13 @@ void RemoteCache::establishConnection() {
 }
 
 void RemoteCache::closeConnection() {
-    delete giveType(this->client);
+    delete this->client;
     this->client = nullptr;
 }
 
 void RemoteCache::initiateAndCloseConnection() {
     try {
-        giveType(this->client)->sendMessage("end");
+        this->client->sendMessage("end");
     } catch (...) {}
 
     this->closeConnection();

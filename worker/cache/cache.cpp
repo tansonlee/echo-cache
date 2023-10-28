@@ -1,20 +1,13 @@
 #include "cache.h"
 #include <iostream>
 
-Cache::Cache() {
-
-}
-
-Cache::~Cache() {
-
-}
+Cache::Cache() {}
 
 void Cache::dump() {
     for(auto it = this->map.begin(); it != this->map.end(); ++it) {
         std::cout << it->first << " " << it->second << " " << "\n";
     }
 }
-
 
 HandlerResponse Cache::get(std::string key) {
     auto found = this->map.find(key);
