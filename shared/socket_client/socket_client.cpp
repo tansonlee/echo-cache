@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 SocketClient::SocketClient(const std::string& ip, int port) {
+    this->connectionSucceeded = true;
     memset(&this->server_addr, 0, sizeof(this->server_addr));
     this->server_addr.sin_family = AF_INET;
     this->server_addr.sin_addr.s_addr = inet_addr(ip.c_str());
@@ -18,12 +19,14 @@ SocketClient::SocketClient(const std::string& ip, int port) {
     this->sock_client = socket(AF_INET,SOCK_STREAM, 0);
 
     if (this->sock_client < 0) {
+        this->connectionSucceeded = false;
         std::cerr << "Something went wrong" << std::endl;
     }
 
     int connection = connect(this->sock_client, (struct sockaddr *)&this->server_addr, sizeof(this->server_addr));
     if (connection < 0) {
         perror("connect");
+        this->connectionSucceeded = false;
     }
 }
 
@@ -32,10 +35,18 @@ SocketClient::~SocketClient() {
 }
 
 void SocketClient::sendMessage(const std::string& message) {
+    if (!this->connectionSucceeded) {
+        std::cerr << "Tried to send a message on a failed connection" << std::endl;
+        return;
+    }
     send(this->sock_client, message.c_str(), strlen(message.c_str()), 0);
 }
 
 std::string SocketClient::receiveResponse() {
+    if (!this->connectionSucceeded) {
+        std::cerr << "Tried to receive response on a failed connection" << std::endl;
+        return "";
+    }
     char recv_buf[65536]; 
     ssize_t bytes_received = recv(this->sock_client, recv_buf, sizeof(recv_buf), 0);
     if (bytes_received < 0) {

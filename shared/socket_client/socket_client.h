@@ -16,6 +16,8 @@ class SocketClient {
 
     void sendMessage(const std::string& message);
     std::string receiveResponse();
+
+    bool connectionSucceeded;
   private:
     sockaddr_in server_addr;
     int sock_client;

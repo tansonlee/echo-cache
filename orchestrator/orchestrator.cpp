@@ -36,6 +36,9 @@ std::string handleRequest(char* buff, const std::string& worker_ip, int worker_p
     std::string command(buff);
 
     SocketClient client{worker_ip, worker_port};
+    if (!client.connectionSucceeded) {
+        return "";
+    }
     client.sendMessage(command);
     std::string response = client.receiveResponse();
     return response;
@@ -73,14 +76,40 @@ void handleClient(CommandLineArguments commandLineArguments, int connection, con
         }
 
         ParsedKey parsedKey = parseKey(command);
-        if (parsedKey.success) {
-            int hash = hashKey(parsedKey.key, commandLineArguments.numWorkers);
-            IpAndPort workerIpAndPort = commandLineArguments.workers[hash];
-            
-            std::string response = handleRequest(recv_buf, workerIpAndPort.ip, workerIpAndPort.port);
-            int responseCode = send(connection, response.c_str(), response.size(), 0);
+        CommandType commandType = getCommandType(command);
+        if (!parsedKey.success || commandType == CommandType::other) {
+            break;
+        }
+
+        int workerIndex1 = hashKey(parsedKey.key, commandLineArguments.numWorkers);
+        int workerIndex2 = (workerIndex1 + 1) % commandLineArguments.numWorkers;
+        IpAndPort workerIpAndPort1 = commandLineArguments.workers[workerIndex1];
+        IpAndPort workerIpAndPort2 = commandLineArguments.workers[workerIndex2];
+
+        if (commandType == CommandType::set) {
+            // Send to both workers.
+            std::string response1 = handleRequest(recv_buf, workerIpAndPort1.ip, workerIpAndPort1.port);
+            std::string response2 = handleRequest(recv_buf, workerIpAndPort2.ip, workerIpAndPort2.port);
+            int responseCode = send(connection, response1.c_str(), response1.size(), 0);
             if (responseCode == -1) {
                 perror("send");
+            }
+        }
+        else if (commandType == CommandType::get) {
+            // Send to first worker.
+            std::string response1 = handleRequest(recv_buf, workerIpAndPort1.ip, workerIpAndPort1.port);
+            if (!response1.empty()) {
+                int responseCode = send(connection, response1.c_str(), response1.size(), 0);
+                if (responseCode == -1) {
+                    perror("send");
+                }
+            } else {
+                // If it failed, send to second worker.
+                std::string response2 = handleRequest(recv_buf, workerIpAndPort2.ip, workerIpAndPort2.port);
+                int responseCode = send(connection, response2.c_str(), response2.size(), 0);
+                if (responseCode == -1) {
+                    perror("send");
+                }
             }
         }
     }
