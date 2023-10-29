@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Echo cache is a distributed in-memory caching solution prioritizing performance and simplicity. This project was created to explore distributed systems, networking, and architectural design.
+Echo cache is a distributed, scalable, in-memory caching solution prioritizing performance and simplicity. This project was created to explore distributed systems, networking, and architectural design.
 
 ### Goals for this cache
 
@@ -12,7 +12,7 @@ Echo cache is a distributed in-memory caching solution prioritizing performance 
 
 ## Usage
 
-You will need to run multiple workers, one orchestrator, then your application which uses the cache.
+You will need to run multiple workers, one orchestrator, then your application which uses the cache. It is highly recommended to use a provided client since they properly implement the custom network protocol that is used. However, if you are using a language without support, read the [Custom Network Protocol](#custom-network-protocol) section before implementing a client yourself.
 
 1. Build the project.
 
@@ -72,9 +72,19 @@ Response (0): 'tanson'
 
 ## Use cases
 
--   this cache is right for you if...
--   Use it as a layer between db and server
--   sharing values across sharded servers
+This cache is right for you if:
+
+-   You require access from multiple machines
+-   You require scalability
+-   You require some level of fault tolerance
+-   You require consistency
+-   You do not need durability since there are no guarantees on cache eviction
+
+Some common use cases are:
+
+-   A caching layer between a database and an application where the application is sharded or runs on multiple machines. In this case, the cache can be shared between them.
+-   Sharing values across multiple servers or applications.
+-   Saving repeated expensive calculations used across more than one machine.
 
 ## Architecture
 
@@ -82,13 +92,44 @@ Response (0): 'tanson'
 
 ### Worker
 
+A worker contains the actual in-memory store and receives messages from the orchestrator to execute queries on the cache. Workers also perform cache management in the form of memory usage by implementing a least recently used (LRU) cache eviction strategy.
+
 ### Orchestrator
+
+The orchestrator acts as a proxy between applications and workers. It takes requests fro clients then sends messages to the appropriate worker(s) to perform the actual execution.
+
+To ensure that the orchestrator does not act as a bottleneck, it implements a multi-threading scheme similar to that of TCP. On every new connection by a client, it will create a new thread dedicated to that client. This means that when multiple clients connect to the orchestrator, they will not compete for execution. This prevents [head-of-line blocking](https://en.wikipedia.org/wiki/Head-of-line_blocking). Additionally, this removes the overhead of connection establishment on every request since the connection may stay open across multiple requests.
+
+You may have noticed that this is tricky if clients do not cooperate. If clients do not signal closing of a connection, the orchestrator may create an ever growing number of threads and the physical machine may run out of resources to manage them. To solve this, the orchestrator enacts a idle client detection scheme. If there is no activity from a client for a specified amount of time, the orchestrator will close the connection.
+
+This is implemented with a "custodian" thread which finds all connections and when they were last used. If the custodian determines that the client is idle, it will kill the connection and thread, thus reclaiming the resources they were using.
+
+### Scaling
+
+The orchestrator partitions the keyspace into `n` partitions where `n` is the number of workers running. Each worker is responsible for 2 partitions of the keyspace. This means that the cache can scale linearly by running more workers. Deploying more workers allows the cache to have more storage space and be more performant.
 
 ### Fault Tolerance
 
+All data is replicated across 2 workers since each worker is responsible for 2 partitions of the keyspace. This means that if a worker goes down, the data will still be available on another worker.
+
+Every write to the cache writes the data to the 2 workers that are responsible for the keyspace partition that the key belongs to. Every read first queries one of these workers then potentially the second worker if the first worker failed.
+
 ### Custom Network Protocol
 
+The network protocol used between clients and the orchestrator is a custom protocol built on top of network sockets. Since the protocol is custom, it is highly recommended to use one of the supported clients.
+
+The protocol is similar to TCP since each client gets its own dedicated thread. This allows for higher throughput since clients do not need to wait for requests from other clients. This prevents [head-of-line blocking](https://en.wikipedia.org/wiki/Head-of-line_blocking). Additionally, this removes the overhead of connection establishment on every request since the connection may stay open across multiple requests.
+
+However, resources may leak if clients do not close their connections when they are finished since the number of threads that the orchestrator process is running may continue to increase forever. To prevent this, the orchestrator periodically prunes idle connections.
+
+Ultimately, this means that there is no guarantee on the lifetime of a connection so a client _must_ be tolerant to connections being closed by the server. The client should just re-establish a new connection and continue sending requests.
+
 ## Storage Engine
+
+-   what is the dictionary implementation
+-   what is the cache eviction strategy
+-   what is the compression strategy
+-   encryption strategy
 
 -   orchestrator-worker architecture
 -   Orchestrator: every request and response goes through the orchestrator. The orchestrator directs responses to workers. Basically a load balancer/proxy
@@ -105,3 +146,5 @@ Talk about
     -   compress the data first
 -   the fault tolerance (storing on multiple instances and fetching from multiple instances)
 -   durability, persistance,
+
+do some performance testing??
