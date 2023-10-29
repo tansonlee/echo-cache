@@ -1,5 +1,18 @@
 # Echo Cache
 
+## Table of Contents
+
+-   [Introduction](#introduction)
+-   [Usage](#usage)
+-   [Use cases](#use-cases)
+-   [Architecture](#architecture)
+    -   [Worker](#worker)
+    -   [Orchestrator](#orchestrator)
+    -   [Scaling](#scaling)
+    -   [Fault Tolerance](#fault-tolerance)
+    -   [Custom Network Protocol](#custom-network-protocol)
+-   [Storage Engine](#storage-engine)
+
 ## Introduction
 
 Echo cache is a distributed, scalable, in-memory caching solution prioritizing performance and simplicity. This project was created to explore distributed systems, networking, and architectural design.
