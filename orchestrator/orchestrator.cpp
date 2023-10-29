@@ -29,6 +29,7 @@ struct ConnectionUsage {
     int lastUsed;
 };
 
+std::mutex clientConnectionsMutex;
 std::map<int, ConnectionUsage> clientConnections;
 
 std::string handleRequest(char* buff, const std::string& worker_ip, int worker_port) {
@@ -48,8 +49,6 @@ void handleClient(CommandLineArguments commandLineArguments, int connection, con
         memset(recv_buf, '\0', sizeof(recv_buf));
         ssize_t bytes_received = recv(connection, recv_buf, sizeof(recv_buf), 0);
 
-        std::cout << printPrefix << "got " << recv_buf << std::endl;
-
         if (bytes_received == -1) {
             perror("recv");
             std::cerr << "Exiting this listening thread" << std::endl;
@@ -58,16 +57,17 @@ void handleClient(CommandLineArguments commandLineArguments, int connection, con
         if (bytes_received == 0) {
             std::cout << printPrefix << "connection closed by client" << std::endl;
             close(connection);
+            std::lock_guard<std::mutex> lock(clientConnectionsMutex);
             clientConnections.erase(id);
             break;
         } 
+        std::cout << printPrefix << "got " << recv_buf << std::endl;
 
         std::string command = recv_buf;
         if (command == "end") {
             std::cout << printPrefix << "client requests connection close" << std::endl;
-            std::string response = "closing";
-            int responseCode = send(connection, response.c_str(), response.size(), 0);
             close(connection);
+            std::lock_guard<std::mutex> lock(clientConnectionsMutex);
             clientConnections.erase(id);
             break;
         }
@@ -75,13 +75,9 @@ void handleClient(CommandLineArguments commandLineArguments, int connection, con
         ParsedKey parsedKey = parseKey(command);
         if (parsedKey.success) {
             int hash = hashKey(parsedKey.key, commandLineArguments.numWorkers);
-            std::cout << printPrefix << "routing " << hash << std::endl;
-
             IpAndPort workerIpAndPort = commandLineArguments.workers[hash];
             
             std::string response = handleRequest(recv_buf, workerIpAndPort.ip, workerIpAndPort.port);
-
-            std::cout << printPrefix << "respond " << response << std::endl;
             int responseCode = send(connection, response.c_str(), response.size(), 0);
             if (responseCode == -1) {
                 perror("send");
@@ -89,25 +85,24 @@ void handleClient(CommandLineArguments commandLineArguments, int connection, con
         }
     }
     std::cout << printPrefix << "end connection" << std::endl;
-    // close(connection);
 }
 
 void cleanUpThreads() {
     while (true) {
-        // Perform cleanup
-        for (auto it = clientConnections.cbegin(); it != clientConnections.cend();) {
-            std::cerr << "Looking at thread" << std::endl;
-            int lastUsed = it->second.lastUsed;
-            int currentTime = getCurrentTime();
-            std::cout << "time diff " << currentTime - lastUsed << std::endl;
-            if (currentTime - lastUsed > 5) {
-                std::cerr << "killing this thread" << std::endl;
-                int connection = it->second.connection;
-                close(connection);
-                it = clientConnections.erase(it);
-            } else {
-                ++it;
+        {
+            std::lock_guard<std::mutex> lock(clientConnectionsMutex);
+            for (auto it = clientConnections.cbegin(); it != clientConnections.cend();) {
+                int lastUsed = it->second.lastUsed;
+                int currentTime = getCurrentTime();
+                if (currentTime - lastUsed > 5) {
+                    int connection = it->second.connection;
+                    close(connection);
+                    it = clientConnections.erase(it);
+                } else {
+                    ++it;
+                }
             }
+            std::cout << "Number of active threads: " << clientConnections.size() << std::endl;
         }
 
         std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -132,17 +127,19 @@ int main(int argc, char *argv[]) {
         socklen_t length = sizeof(client_addr);
         int conn = accept(server_sockfd, (struct sockaddr*)&client_addr,&length);
         // block on accept until positive fd or error
-        if(conn<0) {
+        if (conn < 0) {
             perror("Orchestrator error connect");
             continue;
         }
 
-        std::string client_ip = inet_ntoa(client_addr.sin_addr); int client_port = (int) ntohs(client_addr.sin_port);
+        std::string client_ip = inet_ntoa(client_addr.sin_addr);
+        int client_port = (int) ntohs(client_addr.sin_port);
         std::string printPrefix = client_ip + ":" + std::to_string(client_port) + " - ";
 
         int threadId = getNextId();
         clientHandlerThreads.push_back(std::thread(handleClient, commandLineArguments, conn, printPrefix, threadId));
 
+        std::lock_guard<std::mutex> lock(clientConnectionsMutex);
         clientConnections[threadId] = { conn, getCurrentTime() };
     }
 

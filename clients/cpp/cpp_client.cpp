@@ -24,7 +24,6 @@ HandlerResponse RemoteCache::get(const std::string& key) {
     int retriesLeft = this->maxRetries;
     while (retriesLeft >= 1) {
         try {
-            std::cerr << "trying to get" << std::endl;
             this->client->sendMessage("get||" + key);
             std::string response = this->client->receiveResponse();
             if (response.empty()) {
@@ -33,7 +32,6 @@ HandlerResponse RemoteCache::get(const std::string& key) {
             HandlerResponse parsed = parseResponseString(response);
             return parsed;
         } catch (...) {
-            std::cerr << "reestablishing connection" << std::endl;
             this->reestablishConnection();
         }
         --retriesLeft;

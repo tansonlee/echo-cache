@@ -42,7 +42,7 @@ std::string SocketClient::receiveResponse() {
         perror("recv");
         return "";
     } else if (bytes_received == 0) {
-        std::cout << "Server closed the connection." << std::endl;
+        // Server closed the connection
         return "";
     } else {
         // Null-terminate the received data to treat it as a string
