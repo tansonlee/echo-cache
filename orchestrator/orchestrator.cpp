@@ -81,6 +81,12 @@ void handleClient(CommandLineArguments commandLineArguments, int connection, con
             break;
         }
 
+        // Update connections lastUsed time.
+        {
+            std::lock_guard<std::mutex> lock(clientConnectionsMutex);
+            clientConnections[id].lastUsed = getCurrentTime();
+        }
+
         int workerIndex1 = hashKey(parsedKey.key, commandLineArguments.numWorkers);
         int workerIndex2 = (workerIndex1 + 1) % commandLineArguments.numWorkers;
         IpAndPort workerIpAndPort1 = commandLineArguments.workers[workerIndex1];
