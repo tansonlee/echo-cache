@@ -4,6 +4,7 @@
 #include <parser.h>
 #include <string>
 #include <map>
+#include "hashtable.h"
 
 class Cache {
 public:
@@ -12,10 +13,17 @@ public:
 
     HandlerResponse get(std::string key);
     HandlerResponse set(std::string key, std::string val);
-    void dump();
 
 private:
-    std::map<std::string, std::string> map;
+    HashTableCuckoo table;
+
+    std::string compress(const std::string& value);
+    std::string decompress(const std::string& compressedValue);
+
+    std::string encrypt(const std::string& value);
+    std::string decrypt(const std::string& encryptedValue);
+
+
 };
 
 
