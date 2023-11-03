@@ -4,18 +4,20 @@
 #include <parser.h>
 #include <string>
 #include <map>
-#include "hashtable.h"
+#include "lru_cache.h"
 
 class Cache {
 public:
     Cache();
-    ~Cache() = default;
+    ~Cache();
 
     HandlerResponse get(std::string key);
     HandlerResponse set(std::string key, std::string val);
+    HandlerResponse del(std::string key);
+
 
 private:
-    HashTableCuckoo table;
+    LRUCache* table;
 
     std::string compress(const std::string& value);
     std::string decompress(const std::string& compressedValue);

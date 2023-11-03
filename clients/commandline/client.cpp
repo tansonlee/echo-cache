@@ -46,6 +46,15 @@ int main(int argc, char **argv) {
             std::cin >> key;
             HandlerResponse response = remoteCache.get(key);
             std::cout << "Response (" << response.statusCode << "): '" << response.result << "'" << std::endl;
+        } else if (command == "del") {
+            std::string key;
+            std::cin >> key;
+            bool success = remoteCache.del(key);
+            if (success) {
+                std::cout << "Success" << std::endl;
+            } else {
+                std::cout << "Success" << std::endl;
+            }
         } else if (command == "quit") {
             remoteCache.initiateAndCloseConnection();
             break;

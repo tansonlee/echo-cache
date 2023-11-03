@@ -34,6 +34,14 @@ HandlerResponse handleRequest(char* buff, Cache& cache) {
             return cache.set(setRequest.key, setRequest.val);
         }
     }
+    else if (commandType == CommandType::del) {
+        ParsedDelRequest delRequest = parseDel(command);
+        if (delRequest.success == false) {
+            return {StatusCode::parsingFailure, "Could not parse del request: '" + command + "'"};
+        } else {
+            return cache.del(delRequest.key);
+        }
+    }
     else {
         return {StatusCode::invalidCommand, "Invalid command type: '" + command + "'"};
     }

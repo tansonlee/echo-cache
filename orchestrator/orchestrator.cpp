@@ -118,6 +118,15 @@ void handleClient(CommandLineArguments commandLineArguments, int connection, con
                 }
             }
         }
+        else if (commandType == CommandType::del) {
+            // Send to both workers.
+            std::string response1 = handleRequest(recv_buf, workerIpAndPort1.ip, workerIpAndPort1.port);
+            std::string response2 = handleRequest(recv_buf, workerIpAndPort2.ip, workerIpAndPort2.port);
+            int responseCode = send(connection, response1.c_str(), response1.size(), 0);
+            if (responseCode == -1) {
+                perror("send");
+            }
+        }
     }
     std::cout << printPrefix << "end connection" << std::endl;
 }

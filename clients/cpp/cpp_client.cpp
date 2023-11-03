@@ -58,6 +58,24 @@ bool RemoteCache::set(const std::string& key, const std::string& value) {
     return false;
 }
 
+bool RemoteCache::del(const std::string& key) {
+    int retriesLeft = this->maxRetries;
+    while (retriesLeft >= 1) {
+        try {
+            this->client->sendMessage("del||" + key);
+            std::string response = this->client->receiveResponse();
+            if (response.empty()) {
+                throw std::runtime_error("bad connection");
+            }
+            return true;
+        } catch (...) {
+            this->reestablishConnection();
+        }
+        --retriesLeft;
+    }
+    return false;
+}
+
 void RemoteCache::reestablishConnection() {
     this->closeConnection();
     this->establishConnection();

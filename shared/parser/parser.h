@@ -24,6 +24,11 @@ struct ParsedGetRequest {
     std::string key;
 };
 
+struct ParsedDelRequest {
+    bool success;
+    std::string key;
+};
+
 struct ParsedKey {
     bool success;
     std::string key;
@@ -33,6 +38,7 @@ enum CommandType {
     other = 0,
     set = 1,
     get = 2,
+    del = 3
 };
 
 enum StatusCode {
@@ -59,6 +65,9 @@ ParsedSetRequest parseSet(std::string command);
 
 // get||name -> { true, name }
 ParsedGetRequest parseGet(std::string command);
+
+// del||name -> { true, name }
+ParsedDelRequest parseDel(std::string command);
 
 // set||name||tanson -> name
 // get||name -> name
