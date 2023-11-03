@@ -4,3 +4,5 @@
 # Build files
 build/
 CMakeFiles/
+
+.ccls-cache
