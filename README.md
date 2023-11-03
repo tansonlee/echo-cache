@@ -143,25 +143,14 @@ Ultimately, this means that there is no guarantee on the lifetime of a connectio
 
 ## Storage Engine
 
--   what is the dictionary implementation
--   what is the cache eviction strategy
--   what is the compression strategy
--   encryption strategy
+Data is stored in-memory to enable fast I/O which leads to high throughput. The concrete data structure used to store key-value pairs is a [hash table](https://en.wikipedia.org/wiki/Hash_table) which uses [Cuckoo hashing](https://en.wikipedia.org/wiki/Cuckoo_hashing) for hash collision resolution.
 
--   orchestrator-worker architecture
--   Orchestrator: every request and response goes through the orchestrator. The orchestrator directs responses to workers. Basically a load balancer/proxy
--   Worker: Does the work of actually storing/retrieving data.
--   Fault tolerance: when a node comes back up, automatically fill all its information from it's partner node.
--   Each node has a partner node that contains all the same data.
--   On each request, send data to a node and its partner.
+The reason Cuckoo hashing was chosen is because it enables `O(1)` **worst case** lookup, `O(1)` average case insert, and `O(1)` **worst case** lookup. This comes at a cost of larger memory usage and potentially slower insert times.
 
-Talk about
+Echo Cache is tolerant to memory overflows. It implements a [least recently used (LRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#LRU) cache eviction policy. This means that Echo Cache will not use more memory than allocated to it.
 
--   architecture
--   the custom networking protocol
--   the implementation of the in memory cache itself
-    -   compress the data first
--   the fault tolerance (storing on multiple instances and fetching from multiple instances)
--   durability, persistance,
+## Next Steps
+
+1. enable to orchestrator to perform a cache value recovery. when a node goes down, we can re-distribute load by loading the cache with the right kv pairs
 
 do some performance testing??
