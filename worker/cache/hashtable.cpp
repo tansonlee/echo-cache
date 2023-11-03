@@ -1,5 +1,6 @@
 #include "hashtable.h"
 #include<cmath>
+#include <climits>
 
 // pre: start > 10
 // post: returns smallest prime that is at least start
