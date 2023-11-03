@@ -93,6 +93,10 @@ This cache is right for you if:
 -   You require consistency
 -   You do not need durability since there are no guarantees on cache eviction
 
+Do not use this cache if:
+
+-   Your application cannot handle cache misses. To optimize throughput, there is no guarantee on the durability of writes. Echo Cache uses a [least recently used (LRU)]() cache eviction strategy.
+
 Some common use cases are:
 
 -   A caching layer between a database and an application where the application is sharded or runs on multiple machines. In this case, the cache can be shared between them.

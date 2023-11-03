@@ -49,8 +49,8 @@ HandlerResponse handleRequest(char* buff, Cache& cache) {
 
 int main(int argc, char *argv[]) {
     // Get port from command line arg.
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <port>" << std::endl;
+    if (argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " <port> <max size>" << std::endl;
         return 1;
     }
     int port = atoi(argv[1]);
@@ -58,11 +58,16 @@ int main(int argc, char *argv[]) {
         std::cerr << "Invalid port number" << std::endl;
         return 1;
     }
+    int maxSize = atoi(argv[2]);
+    if (maxSize == 0) {
+        std::cerr << "Invalid max size" << std::endl;
+        return 1;
+    }
 
     int server_sockfd = buildSocketServer(port);
     std::cout << "Listening on port: " << port << std::endl;
 
-    Cache cache;
+    Cache cache(maxSize);
     char recv_buf[65536];
     memset(recv_buf, '\0', sizeof(recv_buf));
 

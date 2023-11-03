@@ -8,7 +8,7 @@
 
 class Cache {
 public:
-    Cache();
+    Cache(int maxSize);
     ~Cache();
 
     HandlerResponse get(std::string key);

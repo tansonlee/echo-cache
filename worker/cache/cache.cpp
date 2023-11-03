@@ -1,7 +1,7 @@
 #include "cache.h"
 #include <iostream>
 
-Cache::Cache(): table(new LRUCache(10)) {}
+Cache::Cache(int maxSize): table(new LRUCache(maxSize)) {}
 
 Cache::~Cache() {
     delete table;
