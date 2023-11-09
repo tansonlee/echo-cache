@@ -27,9 +27,22 @@ Echo cache is a distributed, scalable, in-memory caching solution prioritizing p
 
 You will need to run multiple workers, one orchestrator, then your application which uses the cache. It is highly recommended to use a provided client since they properly implement the custom network protocol that is used. However, if you are using a language without support, read the [Custom Network Protocol](#custom-network-protocol) section before implementing a client yourself.
 
+### Quick Start
+
+Make sure you have CMake and a C++ compiler installed.
+
+```bash
+git clone https://github.com/tansonlee/echo-cache.git
+chmod u+x run.sh
+./run.sh
+```
+
+### Detailed Start
+
 1. Build the project.
 
 ```bash
+git clone https://github.com/tansonlee/echo-cache.git
 mkdir build
 cd build
 cmake ..
