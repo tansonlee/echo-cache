@@ -74,26 +74,33 @@ int main(int argc, char *argv[]) {
   memset(recv_buf, '\0', sizeof(recv_buf));
 
   while (true) {
+    std::cerr << 1 << std::endl;
     sockaddr_in client_addr;
     socklen_t length = sizeof(client_addr);
 
     int conn = accept(server_sockfd, (struct sockaddr *)&client_addr, &length);
+    std::cerr << 2 << std::endl;
     if (conn < 0) {
       perror("connect");
       continue;
     }
+    std::cerr << 3 << std::endl;
 
     ssize_t bytes_received = recv(conn, recv_buf, sizeof(recv_buf), 0);
+    std::cerr << 4 << std::endl;
     if (bytes_received == -1) {
       perror("recv");
     } else if (bytes_received == 0) {
       // Connection closed by the client
+    std::cerr << 5 << std::endl;
     } else {
       HandlerResponse response = handleRequest(recv_buf, cache);
       std::string responseString = formatResponseString(response);
+    std::cerr << 6 << std::endl;
 
       int responseCode =
           send(conn, responseString.c_str(), responseString.size(), 0);
+    std::cerr << 7 << std::endl;
       if (responseCode == -1) {
         perror("send");
       }

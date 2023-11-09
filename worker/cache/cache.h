@@ -17,7 +17,8 @@ public:
 
 
 private:
-    LRUCache* table;
+    // LRUCache* table;
+    std::map<std::string, std::string>* table;
 
     std::string compress(const std::string& value);
     std::string decompress(const std::string& compressedValue);

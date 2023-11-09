@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-#include <cpp_client.h>
+#include <echo_cache_client.h>
 
 std::string testBadGet(RemoteCache& remoteCache) {
     HandlerResponse response = remoteCache.get("asdfasdfasdfasdfasdfasdf");

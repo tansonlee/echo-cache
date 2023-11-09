@@ -1,15 +1,18 @@
 #include "cache.h"
 #include <iostream>
+#include <string>
 
-Cache::Cache(int maxSize): table(new LRUCache(maxSize)) {}
+// Cache::Cache(int maxSize): table(new LRUCache(maxSize)) {}
+Cache::Cache(int maxSize): table(new std::map<std::string, std::string>()) {}
 
 Cache::~Cache() {
-    delete table;
+    // delete table;
 }
 
 HandlerResponse Cache::get(std::string key) {
     try {
-        std::string value = this->table->get(key);
+        // std::string value = this->table->get(key);
+        std::string value = this->table->at(key);
         return {StatusCode::success, value};
 
     } catch (...) {
@@ -18,12 +21,14 @@ HandlerResponse Cache::get(std::string key) {
 }
 
 HandlerResponse Cache::set(std::string key, std::string value) {
-    this->table->set(key, value);
+    // this->table->set(key, value);
+    (*this->table)[key] = value;
     return {StatusCode::success, "Got it!"};
 }
 
 HandlerResponse Cache::del(std::string key) {
-    this->table->del(key);
+    // this->table->del(key);
+    this->table->erase(key);
     return {StatusCode::success, "Deleted!"};
 }
 

@@ -54,12 +54,14 @@ void handleClient(CommandLineArguments commandLineArguments, int connection,
   while (true) {
     memset(recv_buf, '\0', sizeof(recv_buf));
     ssize_t bytes_received = recv(connection, recv_buf, sizeof(recv_buf), 0);
+    std::cerr << 1 << std::endl;
 
     if (bytes_received == -1) {
       perror("recv");
       std::cerr << "Exiting this listening thread" << std::endl;
       break;
     }
+    std::cerr << 2 << std::endl;
     if (bytes_received == 0) {
       std::cout << printPrefix << "connection closed by client" << std::endl;
       close(connection);
@@ -79,23 +81,28 @@ void handleClient(CommandLineArguments commandLineArguments, int connection,
       break;
     }
 
+    std::cerr << 3 << std::endl;
     ParsedKey parsedKey = parseKey(command);
     CommandType commandType = getCommandType(command);
     if (!parsedKey.success || commandType == CommandType::other) {
       break;
     }
+    std::cerr << 4 << std::endl;
+    std::cerr << 5 << std::endl;
 
     // Update connections lastUsed time.
     {
       std::lock_guard<std::mutex> lock(clientConnectionsMutex);
       clientConnections[id].lastUsed = getCurrentTime();
     }
+    std::cerr << 6 << std::endl;
 
     int workerIndex1 = hashKey(parsedKey.key, commandLineArguments.numWorkers);
     int workerIndex2 = (workerIndex1 + 1) % commandLineArguments.numWorkers;
     IpAndPort workerIpAndPort1 = commandLineArguments.workers[workerIndex1];
     IpAndPort workerIpAndPort2 = commandLineArguments.workers[workerIndex2];
 
+    std::cerr << 7 << std::endl;
     if (commandType == CommandType::set) {
       // Send to both workers.
       std::string response1 =
@@ -139,6 +146,7 @@ void handleClient(CommandLineArguments commandLineArguments, int connection,
         perror("send");
       }
     }
+    std::cerr << 8 << std::endl;
   }
   std::cout << printPrefix << "end connection" << std::endl;
 }
@@ -146,12 +154,14 @@ void handleClient(CommandLineArguments commandLineArguments, int connection,
 void cleanUpThreads() {
   while (true) {
     {
-      std::lock_guard<std::mutex> lock(clientConnectionsMutex);
+      clientConnectionsMutex.lock();
+      // std::lock_guard<std::mutex> lock(clientConnectionsMutex);
       for (auto it = clientConnections.cbegin();
            it != clientConnections.cend();) {
         int lastUsed = it->second.lastUsed;
         int currentTime = getCurrentTime();
-        if (currentTime - lastUsed > 5) {
+        if (currentTime - lastUsed > 50) {
+          std::cout << "Kicking off a thread" << std::endl;
           int connection = it->second.connection;
           close(connection);
           it = clientConnections.erase(it);
@@ -159,6 +169,7 @@ void cleanUpThreads() {
           ++it;
         }
       }
+      clientConnectionsMutex.unlock();
       std::cout << "Number of active threads: " << clientConnections.size()
                 << std::endl;
     }
@@ -182,7 +193,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Listening on port: " << commandLineArguments.port << std::endl;
 
   std::vector<std::thread> clientHandlerThreads;
-  std::thread custodianThread = std::thread(cleanUpThreads);
+  // std::thread custodianThread = std::thread(cleanUpThreads);
 
   while (true) {
     sockaddr_in client_addr;

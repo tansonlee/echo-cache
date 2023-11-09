@@ -1,4 +1,4 @@
-add_library(CppClient cpp_client.cpp)
+add_library(CppClient echo_cache_client.cpp)
 
 find_library(libs NAMES SocketClient Parser)
 target_link_libraries(CppClient PRIVATE SocketClient Parser)

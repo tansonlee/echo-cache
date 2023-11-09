@@ -83,6 +83,29 @@ Success
 Response (0): 'tanson'
 ```
 
+### C++ Client Example
+
+```c++
+#include <iostream>
+#include <echo_cache_client.h>
+
+int main() {
+    RemoteCache client("127.0.0.1", 8000);
+    client.set("name", "tanson");
+    std::cout << client.get("name") << std::endl; // prints "tanson"
+}
+```
+
+### Python Client Example
+
+```python
+from echo_cache_client import RemoteCache
+
+client = RemoteCache("127.0.0.1", 8000)
+client.set("name", "tanson");
+print(client.get("name")) # prints "tanson"
+```
+
 ## Use cases
 
 This cache is right for you if:
@@ -151,6 +174,5 @@ Echo Cache is tolerant to memory overflows. It implements a [least recently used
 
 ## Next Steps
 
-1. enable to orchestrator to perform a cache value recovery. when a node goes down, we can re-distribute load by loading the cache with the right kv pairs
-
-do some performance testing??
+1. Improve worker failure recovery. At the moment, when a worker comes back up, its cache is empty. We could have the orchestrator siphon the right data into a worker by fetching from the worker's partners.
+2. Perform leader election. There is only a single orchestrator and if it crashes, the cache will become unavailable. It would be better to elect a new leader which will act as the new orchestrator.
