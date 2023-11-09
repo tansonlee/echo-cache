@@ -4,7 +4,7 @@
 
 -   [Introduction](#introduction)
 -   [Usage](#usage)
--   [Use cases](#use-cases)
+-   [Use Cases](#use-cases)
 -   [Architecture](#architecture)
     -   [Worker](#worker)
     -   [Orchestrator](#orchestrator)
@@ -15,7 +15,7 @@
 
 ## Introduction
 
-Echo cache is a distributed, scalable, in-memory caching solution prioritizing performance and simplicity. This project was created to explore distributed systems, networking, and architectural design.
+Echo Cache is a distributed, scalable, in-memory caching solution prioritizing performance and simplicity. This project was created to explore distributed systems, networking, and architectural design.
 
 ### Goals for this cache
 
@@ -25,7 +25,7 @@ Echo cache is a distributed, scalable, in-memory caching solution prioritizing p
 
 ## Usage
 
-You will need to run multiple workers, one orchestrator, then your application which uses the cache. It is highly recommended to use a provided client since they properly implement the custom network protocol that is used. However, if you are using a language without support, read the [Custom Network Protocol](#custom-network-protocol) section before implementing a client yourself.
+You will need to run multiple workers, one orchestrator, and the application which uses the cache. It is highly recommended to use a provided client since they properly implement the custom network protocol that is used ([C++](#c-client-example), [Python](#python-client-example)). However, if you are using a language without support, read the [Custom Network Protocol](#custom-network-protocol) section before implementing a client yourself.
 
 ### Quick Start
 
@@ -131,7 +131,7 @@ This cache is right for you if:
 
 Do not use this cache if:
 
--   Your application cannot handle cache misses. To optimize throughput, there is no guarantee on the durability of writes. Echo Cache uses a [least recently used (LRU)]() cache eviction strategy.
+-   Your application cannot handle cache misses. To optimize throughput, there is no guarantee on the durability of writes. Echo Cache uses a [least recently used (LRU)](https://en.wikipedia.org/wiki/Cache_replacement_policies#LRU) cache eviction strategy.
 
 Some common use cases are:
 
@@ -149,7 +149,7 @@ A worker contains the actual in-memory store and receives messages from the orch
 
 ### Orchestrator
 
-The orchestrator acts as a proxy between applications and workers. It takes requests fro clients then sends messages to the appropriate worker(s) to perform the actual execution.
+The orchestrator acts as a proxy between applications and workers. It takes requests from clients then sends messages to the appropriate worker(s) to perform the actual execution.
 
 To ensure that the orchestrator does not act as a bottleneck, it implements a multi-threading scheme similar to that of TCP. On every new connection by a client, it will create a new thread dedicated to that client. This means that when multiple clients connect to the orchestrator, they will not compete for execution. This prevents [head-of-line blocking](https://en.wikipedia.org/wiki/Head-of-line_blocking). Additionally, this removes the overhead of connection establishment on every request since the connection may stay open across multiple requests.
 
